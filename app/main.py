@@ -1,12 +1,17 @@
+from asyncio.log import logger
+from logging import Logger
+
 from fastapi import Depends, FastAPI, HTTPException
 
 # from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
 import models
-from auth import get_current_user, get_password_hash
 from database import engine, get_db
-from models import Users
+from routers import auth
+from routers.auth import get_current_user, get_password_hash
+
+# from models import Users
 from schemas import User
 
 # from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -16,6 +21,7 @@ app = FastAPI()
 
 
 models.Base.metadata.create_all(bind=engine)
+app.include_router(auth.router)
 
 
 @app.get("/")
@@ -37,12 +43,16 @@ async def get_users(
 ):
     if user is None:
         raise HTTPException(status_code=404, detail="Not Found")
-    return (
+
+    logger.info(user)
+    """return (
         db.query(models.Users)
-        .filter(models.Users.id == user.get("id"))
+        .filter(
+            models.Users.id == user.get("id"),
+        )
         .first()
-    )
-    # return {"msg": "User Found"}
+    )"""
+    return {"msg": "User Found"}
 
 
 @app.post("/")

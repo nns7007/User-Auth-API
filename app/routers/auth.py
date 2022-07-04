@@ -1,14 +1,17 @@
+import sys
+
+sys.path.append("..")
+
 from typing import Dict
 
 import jwt
-from fastapi import Depends, FastAPI, HTTPException
+import models
+from database import engine, get_db
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
-
-import models
-from database import engine, get_db
 
 # from models import Users
 # from schemas import User
@@ -24,7 +27,8 @@ models.Base.metadata.create_all(bind=engine)
 
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
 
-app = FastAPI()
+# app = FastAPI()
+router = APIRouter()
 
 
 def get_password_hash(hashed_password):
@@ -71,7 +75,7 @@ async def get_current_user(token: str = Depends(oauth2_bearer)) -> Dict:
         raise HTTPException(status_code=404, detail="User Not Found!!")
 
 
-@app.post("/token")
+@router.post("/token")
 async def login_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -81,26 +85,3 @@ async def login_access_token(
         raise HTTPException(status_code=404, detail="user not found!!")
     token = create_access_token(user.id, user.username, user.hashed_password)
     return {"token": token}
-
-
-"""@app.get("/user")
-async def get_users(
-    user: dict = Depends(get_current_user), db: Session = Depends(get_db)
-):
-    if user is None:
-        raise HTTPException(status_code=404, detail="Not Found")
-    return db.query(models.Users).filter(models.Users.username == User).all()"""
-
-
-"""@app.post("/create/user")
-async def create_new_user(create_user: User, db: Session = Depends(get_db)):
-    create_user_model = models.Users()
-    create_user_model.id = create_user.id
-    create_user_model.username = create_user.username
-
-    hash_password = get_password_hash(create_user.hashed_password)
-
-    create_user_model.hashed_password = hash_password
-
-    db.add(create_user_model)
-    db.commit()"""
