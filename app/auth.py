@@ -3,8 +3,7 @@ from typing import Dict
 import jwt
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
-# from jose import JWTError
+from jose import JWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -12,7 +11,7 @@ import models
 from database import engine, get_db
 
 # from models import Users
-from schemas import User
+# from schemas import User
 
 # from jwt import PyJWT
 
@@ -50,17 +49,26 @@ def verify_user(username: str, hashed_password: str, db):
     return user
 
 
-def create_access_token(username: str):
-    encode = {"sub": username}
+def create_access_token(id: int, username: str, hashed_password: str):
+    encode = {"user_id": id, "username": username, "password": hashed_password}
     return jwt.encode(encode, SECRET_KEY, ALGORITHM)
 
 
 async def get_current_user(token: str = Depends(oauth2_bearer)) -> Dict:
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    username = payload.get("sub")
-    if username is None:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("username")
+        hashed_password = payload.get("password")
+        id = payload.get("user_id")
+        if username is None:
+            raise HTTPException(status_code=404, detail="User Not Found!!")
+        return {
+            "user_id": id,
+            "username": username,
+            "password": hashed_password,
+        }
+    except JWTError:
         raise HTTPException(status_code=404, detail="User Not Found!!")
-    return {"username": username}
 
 
 @app.post("/token")
@@ -71,11 +79,20 @@ async def login_access_token(
     user = verify_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=404, detail="user not found!!")
-    token = create_access_token(user.username)
+    token = create_access_token(user.id, user.username, user.hashed_password)
     return {"token": token}
 
 
-@app.post("/create/user")
+"""@app.get("/user")
+async def get_users(
+    user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if user is None:
+        raise HTTPException(status_code=404, detail="Not Found")
+    return db.query(models.Users).filter(models.Users.username == User).all()"""
+
+
+"""@app.post("/create/user")
 async def create_new_user(create_user: User, db: Session = Depends(get_db)):
     create_user_model = models.Users()
     create_user_model.id = create_user.id
@@ -86,4 +103,4 @@ async def create_new_user(create_user: User, db: Session = Depends(get_db)):
     create_user_model.hashed_password = hash_password
 
     db.add(create_user_model)
-    db.commit()
+    db.commit()"""

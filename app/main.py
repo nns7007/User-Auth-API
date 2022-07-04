@@ -4,31 +4,18 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 import models
-from auth import get_current_user
+from auth import get_current_user, get_password_hash
 from database import engine, get_db
-
-# from models import Users
+from models import Users
 from schemas import User
 
 # from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 
 app = FastAPI()
-# security = HTTPBasic()
 
 
 models.Base.metadata.create_all(bind=engine)
-# oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
-
-
-"""@app.post("/token")
-async def token(form_data: OAuth2PasswordRequestForm = Depends()):
-    return {"access_token": form_data.username + "token"}
-
-
-@app.get("/user")
-async def user(token: str = Depends(oauth2_bearer)):
-    return {"token": token}"""
 
 
 @app.get("/")
@@ -50,7 +37,12 @@ async def get_users(
 ):
     if user is None:
         raise HTTPException(status_code=404, detail="Not Found")
-    return db.query(models.Users).filter(models.Users.id == id).all()
+    return (
+        db.query(models.Users)
+        .filter(models.Users.id == user.get("id"))
+        .first()
+    )
+    # return {"msg": "User Found"}
 
 
 @app.post("/")
@@ -71,6 +63,20 @@ async def create_user(user: User, db: Session = Depends(get_db)):
     }
 
 
+@app.post("/create/user")
+async def create_new_user(create_user: User, db: Session = Depends(get_db)):
+    create_user_model = models.Users()
+    create_user_model.email = create_user.id
+    create_user_model.username = create_user.username
+
+    hash_password = get_password_hash(create_user.hashed_password)
+
+    create_user_model.hashed_password = hash_password
+
+    db.add(create_user_model)
+    db.commit()
+
+
 """def get_current_username(
     credentials: HTTPBasicCredentials = Depends(security),
 ):
@@ -88,17 +94,3 @@ async def create_user(user: User, db: Session = Depends(get_db)):
 """@app.get("/users")
 def read_current_user(credentials: HTTPBasicCredentials = Depends(security)):
     return {"username": credentials.username, "password": credentials.password}"""
-
-
-"""@app.post("/create/user")
-async def create_new_user(create_user: Users, db: Session = Depends(get_db)):
-    create_user_model = models.Users()
-    create_user_model.email = create_user.id
-    create_user_model.username = create_user.username
-
-    hash_password = get_password_hash(create_user.password)
-
-    create_user_model.hashed_password = hash_password
-
-    db.add(create_user_model)
-    db.commit()"""
