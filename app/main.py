@@ -84,6 +84,46 @@ async def create_new_user(create_user: User, db: Session = Depends(get_db)):
     db.commit()
 
 
+@app.delete("/")
+async def remove_user(
+    user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    user_info = (
+        db.query(models.Users)
+        .filter(models.Users.id == user.get("id"))
+        .first()
+    )
+
+    if user_info is None:
+        raise HTTPException(status_code=404, detail="User Not Found")
+
+    db.query(models.Users).filter(models.Users.id == user.get("id")).delete()
+
+    db.commit()
+
+    return {
+        "status_code": 200,
+        "result": "User Successfully Deleted",
+    }
+
+
+@app.delete("/{user_id}")
+async def remove_user_by_ID(id: int, db: Session = Depends(get_db)):
+    user_info = db.query(models.Users).filter(models.Users.id == id).first()
+
+    if user_info is None:
+        raise HTTPException(status_code=404, detail="User Not Found")
+
+    db.query(models.Users).filter(models.Users.id == id).delete()
+
+    db.commit()
+
+    return {
+        "status_code": 200,
+        "result": "User Successfully Deleted",
+    }
+
+
 """def get_current_username(
     credentials: HTTPBasicCredentials = Depends(security),
 ):
