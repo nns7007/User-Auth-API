@@ -14,9 +14,6 @@ from routers.auth import get_current_user, get_password_hash
 # from models import Users
 from schemas import User
 
-# from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-
-
 app = FastAPI()
 
 
