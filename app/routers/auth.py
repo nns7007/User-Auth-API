@@ -1,6 +1,9 @@
 import sys
+from asyncio.log import logger
+from telnetlib import LOGOUT
 
 sys.path.append("..")
+from logging import Logger
 from typing import Dict
 
 import jwt
@@ -24,7 +27,7 @@ ALGORITHM = "HS256"
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 models.Base.metadata.create_all(bind=engine)
 
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/token")
 
 
 router = APIRouter()
@@ -65,10 +68,11 @@ async def get_current_user(token: str = Depends(oauth2_bearer)) -> Dict:
         id = payload.get("user_id")
         if username is None:
             raise HTTPException(status_code=404, detail="User Not Found!!")
+
         return {
-            "user_id": id,
+            "id": id,
             "username": username,
-            "password": hashed_password,
+            "hashed_password": hashed_password,
         }
     except JWTError:
         raise HTTPException(status_code=404, detail="User Not Found!!")
@@ -83,4 +87,5 @@ async def login_access_token(
     if not user:
         raise HTTPException(status_code=404, detail="user not found!!")
     token = create_access_token(user.id, user.username, user.hashed_password)
-    return {"token": token}
+    # return {"token": token}
+    return {"access_token": token, "token_type": "bearer"}

@@ -40,16 +40,10 @@ async def get_users(
 ):
     if user is None:
         raise HTTPException(status_code=404, detail="Not Found")
-
-    logger.info(user)
-    """return (
-        db.query(models.Users)
-        .filter(
-            models.Users.id == user.get("id"),
-        )
-        .first()
-    )"""
-    return {"msg": "User Found"}
+    return (
+        db.query(models.Users).filter(models.Users.id == user.get("id")).all()
+    )
+    # return {"msg": "User Found"}
 
 
 @app.post("/")
@@ -84,13 +78,16 @@ async def create_new_user(create_user: User, db: Session = Depends(get_db)):
     db.commit()
 
 
-@app.delete("/")
+@app.delete("/user/{user_id}")
 async def remove_user(
-    user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    id: int,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
     user_info = (
         db.query(models.Users)
         .filter(models.Users.id == user.get("id"))
+        .filter(models.Users.id == id)
         .first()
     )
 
